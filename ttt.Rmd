@@ -1,0 +1,107 @@
+---
+title: "Kobe Shot Data Project"
+output: html_document
+---
+
+BSDS 100-Final Project 2</h1> </center>
+
+#1. This data set contains all of Kobe Bryant’s box score data (excluding offensive and defensive rating) throughout his 20 year career. We will be using this said dataset to identify how to best contain Kobe Bryant on the court and specifically the clutch (2 min remaining)
+
+#2 I have been a die hard lakers fan for about 12 years now. The first ever Lakers game i watched was the Game 7 of the NBA Finals: Lakers vs. Celtics.Since then my favorite player has always been Kobe Bryant. I have always been an avid believer that defense wins championships and knowing how to stop a player is everything. Analytics can be key to understanding a players success
+
+#3 
+
+
+
+<span style="color:red">**Q1.** </span> Install the packages `nycflights13`,  `maps`` and load the datasets: 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+library(ggplot2)
+library(hexbin)
+library(jsonlite)
+library(httr)
+library(scales)
+library(shiny)
+```
+
+<span style="color:red">**P1** First we install our packages
+
+```{r}
+ShotData <- read.csv("data.csv")
+head(ShotData) 
+```
+
+<span style="color:red">**P2** This is a data frame I compiled from the larger data frame showing the number of shots taken per second remaining which i did to understand what shot tendencies occur in what enviornment to better understand the necessary actions to lower Bryant's efficiency 
+
+```{r}
+ShotDataTimeUP= table(ShotData$seconds_remaining)
+head(ShotDataTimeUP)
+ShotDataTimeUP.Df=as.data.frame(ShotDataTimeUP)
+ShotDataTimeUP.Df
+view(ShotDataTimeUP.Df)
+```
+
+<span style="color:red">**P3** This is a visualization of all made shots across different parts of the court, which can be used in order to indentify which part of the court to push Bryant to to minimize his effectiveness and find his area of least efficiency.
+
+```{r}
+ShotData <- na.omit(ShotData) 
+ggplot() + 
+  geom_point(data=ShotData %>% filter(combined_shot_type=="Jump Shot"),
+             aes(x=lon, y=lat), colour="Pink", alpha=0.3) +
+  geom_point(data=ShotData %>% filter(combined_shot_type!="Jump Shot"),
+             aes(x=lon, y=lat, colour=combined_shot_type), alpha=0.8) +
+  labs(title="Shot type") +
+  ylim(c(33.7, 34.0883)) +
+  theme_void() +
+  theme(legend.title=element_blank(),
+        plot.title=element_text(hjust=0.5)) 
+
+```
+
+<span style="color:red">**P4** This is a visualization of shot accuracy by shot type. Next I use this visualization of a shot chart in order to help identify what actions provide bryant with the worst results so we can understand what actions we may want to force him into to further contain him.
+
+```{r}
+
+ShotData <- na.omit(ShotData) 
+
+ShotData %>%
+  group_by(action_type) %>%
+  summarise(Accuracy=mean(shot_made_flag),
+            counts=n()) %>%
+  filter(counts>100) %>%
+  ggplot(aes(x=reorder(action_type, Accuracy), y=Accuracy)) +
+  geom_point(aes(colour=Accuracy), size=5) +
+  scale_colour_gradient(low="purple", high="gold") +
+  labs(title="Accuracy by shot type") +
+  theme_bw() +
+  theme(axis.title.y=element_blank(),
+        legend.position="none",
+        plot.title=element_text(hjust=0.5)) +
+  coord_flip()
+
+
+```
+
+<span style="color:red">**P5** This is a calculation of the correlation of Shot distance and Shot accuracy. This will be used to understand the shot tendencies Bryant specifically takes in the final minute of the game and the variation of said actions 
+
+```{r}
+cor(ShotData$shot_distance, ShotData$minutes_remaining)
+ShotData%>%
+  ggplot(aes(x=minutes_remaining,y=shot_distance))+
+  geom_point()
+
+linear_model_adv<-lm(shot_distance~minutes_remaining,ShotData)
+linear_model_adv
+summary(linear_model_adv)
+  
+
+
+
+plot(ShotData$shot_distance,ShotData$minutes_remaining)
+```
+
+#My initial DataSet was way too large to be properly analyzed. Furthermore, I had trouble realizing why there was N/A values in certain shot categories. This was caused by shots that were fouled and missed not actually counting as missed shots as free throw opportunities were provided. Within the problem that i located, the primary issue was identifying Kobe Bryant’s weaknesses. Also, how do i apply any of this data to the game itself?
